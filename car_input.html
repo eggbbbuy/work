@@ -75,23 +75,3 @@
 </body>
 </html>
 
-
-/* =============================
-   Google Apps Script (貼到GAS)
-============================= */
-
-function doPost(e) {
-  const sheet = SpreadsheetApp.openById("你的Google Sheet ID").getSheetByName("工作表1");
-  const data = JSON.parse(e.postData.contents);
-
-  sheet.appendRow([
-    new Date(),
-    data.name,
-    data.car,
-    data.time,
-    data.price,
-    data.note
-  ]);
-
-  return ContentService.createTextOutput("success");
-}
