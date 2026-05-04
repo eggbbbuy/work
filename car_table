@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>預約列表</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #000;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>預約資料</h2>
+
+<table id="table">
+  <thead>
+    <tr>
+      <th>時間</th>
+      <th>姓名</th>
+      <th>車型</th>
+      <th>預約時間</th>
+      <th>報價</th>
+      <th>備註</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+const SHEET_ID = "1OxAM1vVT9jemc6WZax6Qv4b_ikVFTIKpdUX999wTZ3U";
+const SHEET_NAME = "工作表1";
+
+// Google Visualization API
+const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}`;
+
+fetch(url)
+  .then(res => res.text())
+  .then(data => {
+
+    // 解析 Google 回傳格式
+    const json = JSON.parse(data.substring(47).slice(0, -2));
+
+    const rows = json.table.rows;
+    const tbody = document.querySelector("#table tbody");
+
+    rows.forEach(row => {
+      const tr = document.createElement("tr");
+
+      row.c.forEach(cell => {
+        const td = document.createElement("td");
+        td.textContent = cell ? cell.v : "";
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+  })
+  .catch(err => {
+    console.error(err);
+    alert("讀取資料失敗");
+  });
+</script>
+
+</body>
+</html>
