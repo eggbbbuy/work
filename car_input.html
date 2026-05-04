@@ -1,63 +1,104 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>預約表單</title>
+<meta charset="UTF-8">
+<title>car_input + search</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
-    }
+<style>
+body {
+  font-family: Arial;
+  padding: 20px;
+  background: #f5f5f5;
+}
 
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-    }
+.box {
+  max-width: 600px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+}
 
-    h2 {
-      text-align: center;
-    }
+input, textarea, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+}
 
-    input, textarea, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
+button {
+  background: black;
+  color: white;
+}
 
-    button {
-      background: #000;
-      color: #fff;
-      cursor: pointer;
-    }
-  </style>
+table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  background: white;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+}
+
+th {
+  background: black;
+  color: white;
+}
+</style>
 </head>
 
 <body>
 
-<div class="container">
-  <h2>預約表單</h2>
+<div class="box">
 
-  <input id="name" placeholder="姓名">
-  <input id="car" placeholder="車型">
-  <input id="time" type="datetime-local">
-  <input id="price" placeholder="報價">
-  <textarea id="note" placeholder="備註"></textarea>
+<h2>預約表單</h2>
 
-  <button onclick="submitForm()">送出</button>
+<input id="name" placeholder="姓名">
+<input id="car" placeholder="車型">
+<input id="time" type="datetime-local">
+<input id="price" placeholder="報價">
+<textarea id="note" placeholder="備註"></textarea>
+
+<button onclick="submitForm()">送出</button>
+
+<hr>
+
+<h2>搜尋資料</h2>
+
+<input id="search" placeholder="輸入 車型 / 姓名 / 電話">
+
+<table>
+<thead>
+<tr>
+  <th>時間</th>
+  <th>姓名</th>
+  <th>車型</th>
+  <th>預約時間</th>
+  <th>報價</th>
+  <th>備註</th>
+</tr>
+</thead>
+
+<tbody id="tbody"></tbody>
+</table>
+
 </div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxEACb3qI5z-XrNNXul8jEWGIUPylGKBUAAIVFIWwlqwbVQbDSZQfHRsBH6yyJuCjyq/exec";
 
+/* =========================
+   GAS 設定
+========================= */
+const GAS_URL = "https://script.google.com/macros/s/你的ID/exec";
+const SHEET_ID = "1OxAM1vVT9jemc6WZax6Qv4b_ikVFTIKpdUX999wTZ3U";
+const SHEET_NAME = "工作表1";
+
+/* =========================
+   送出表單
+========================= */
 function submitForm() {
 
   const data = {
@@ -70,16 +111,95 @@ function submitForm() {
 
   fetch(GAS_URL, {
     method: "POST",
-    mode: "no-cors",   // 🔥 避開 CORS
-    body: JSON.stringify(data)
-  })
-  .then(() => {
-    alert("送出成功");
-  })
-  .catch(() => {
-    alert("送出失敗");
+    body: JSON.stringify(data),
+    mode: "no-cors"
+  });
+
+  alert("已送出");
+}
+
+/* =========================
+   搜尋系統
+========================= */
+
+let allData = [];
+
+document.getElementById("search").addEventListener("input", function () {
+  render(this.value);
+});
+
+/* =========================
+   載入 Google Sheet
+========================= */
+const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}`;
+
+fetch(url)
+  .then(res => res.text())
+  .then(data => {
+
+    const json = JSON.parse(data.substring(47).slice(0, -2));
+    const rows = json.table.rows;
+
+    allData = rows.map(r =>
+      r.c.map(c => {
+        if (!c) return "";
+        return formatDate(c.v);
+      })
+    );
+
+    render("");
+
+  });
+
+/* =========================
+   日期格式化
+========================= */
+function formatDate(v) {
+
+  if (!v) return "";
+
+  if (typeof v === "string" && v.includes("Date(")) {
+    const n = v.replace("Date(", "").replace(")", "").split(",");
+    return `${n[0]}-${String(+n[1]+1).padStart(2,"0")}-${String(n[2]).padStart(2,"0")} ${String(n[3]).padStart(2,"0")}:${String(n[4]).padStart(2,"0")}`;
+  }
+
+  return v;
+}
+
+/* =========================
+   渲染 + 搜尋
+========================= */
+function render(keyword) {
+
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  const keys = keyword.toLowerCase().split(" ").filter(x => x);
+
+  const filtered = allData.filter(row => {
+
+    return keys.every(k =>
+      row.some(cell =>
+        (cell || "").toString().toLowerCase().includes(k)
+      )
+    );
+
+  });
+
+  filtered.forEach(row => {
+
+    const tr = document.createElement("tr");
+
+    row.forEach(cell => {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
   });
 }
+
 </script>
 
 </body>
